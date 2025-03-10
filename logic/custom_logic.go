@@ -4,7 +4,7 @@ import (
 	"github.com/LagrangeDev/LagrangeGo/client"
 	"github.com/LagrangeDev/LagrangeGo/client/event"
 	"github.com/LagrangeDev/LagrangeGo/message"
-	"github.com/sirupsen/logrus"
+	//"github.com/sirupsen/logrus"
 )
 
 // RegisterCustomLogic 注册所有自定义逻辑
@@ -21,8 +21,8 @@ func RegisterCustomLogic() {
 
 	Manager.RegisterNewFriendRequestHandler(func(client *client.QQClient, event *event.NewFriendRequest) {
 		//event.SourceUid
-		logrus.Println("UID" + event.SourceUid)
-		client.SetFriendRequest(true, event.SourceUid)
+		//logrus.Println("UID" + event.SourceUid)
+		//client.SetFriendRequest(true, event.SourceUid)
 	})
 }
 

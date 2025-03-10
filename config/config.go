@@ -11,8 +11,9 @@ type Config struct {
 
 // BotConfig 代表TOML文件中的bot部分
 type BotConfig struct {
-	Account  uint32 `toml:"account"`
-	Password string `toml:"password"`
+	Account    uint32 `toml:"account"`
+	Password   string `toml:"password"`
+	SignServer string `toml:"signServer"`
 }
 
 // GlobalConfig 默认全局配置

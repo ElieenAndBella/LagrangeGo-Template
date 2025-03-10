@@ -1,7 +1,9 @@
 package bot
 
 import (
+	"errors"
 	"os"
+	"time"
 
 	"github.com/ExquisiteCore/LagrangeGo-Template/config"
 	"github.com/ExquisiteCore/LagrangeGo-Template/utils"
@@ -20,11 +22,13 @@ type Bot struct {
 var QQClient *Bot
 
 func Init(logger *utils.ProtocolLogger) {
-	appInfo := auth.AppList["linux"]["3.2.10-25765"]
-	deviceInfo := auth.NewDeviceInfo(114514)
-	qqClientInstance := client.NewClient(config.GlobalConfig.Bot.Account, appInfo, "https://sign.lagrangecore.org/api/sign/25765")
+	appInfo := auth.AppList["linux"]["3.2.15-30366"]
+	//qqClientInstance := client.NewClient(config.GlobalConfig.Bot.Account, appInfo, "https://sign.lagrangecore.org/api/sign/25765")
+	qqClientInstance := client.NewClient(config.GlobalConfig.Bot.Account, config.GlobalConfig.Bot.Password)
 	qqClientInstance.SetLogger(logger)
-	qqClientInstance.UseDevice(deviceInfo)
+	qqClientInstance.UseVersion(appInfo)
+	qqClientInstance.AddSignServer(config.GlobalConfig.Bot.SignServer)
+	qqClientInstance.UseDevice(auth.NewDeviceInfo(114514))
 
 	data, err := os.ReadFile("sig.bin")
 	if err != nil {
@@ -43,12 +47,48 @@ func Init(logger *utils.ProtocolLogger) {
 
 // Login 登录
 func Login() error {
-	// 声明 err 变量并进行错误处理
-	err := QQClient.Login(config.GlobalConfig.Bot.Password, "qrcode.png")
+	//获取二维码
+	png, _, err := QQClient.FetchQRCodeDefault()
 	if err != nil {
 		logrus.Errorln("login err:", err)
 		return err
 	}
+
+	//保存本地二维码
+	qrcodePath := "qrcode.png"
+	err = os.WriteFile(qrcodePath, png, 0644)
+	if err != nil {
+		logrus.Errorln("write qrcode err:", err)
+		return err
+	}
+	//打印二维码
+	logrus.Infof("qrcode saved to %s", qrcodePath)
+	//轮询登录状态
+	for {
+		retCode, err := QQClient.GetQRCodeResult()
+		if err != nil {
+			logrus.Errorln(err)
+			return err
+		}
+		// 等待扫码
+		if retCode.Waitable() {
+			time.Sleep(3 * time.Second)
+			continue
+		}
+		if !retCode.Success() {
+			return errors.New(retCode.Name())
+		}
+		break
+	}
+	_, err = QQClient.QRCodeLogin()
+	if err != nil {
+		logrus.Errorln("login err:", err)
+		return err
+	}
+	//监听状态
+	QQClient.DisconnectedEvent.Subscribe(func(client *client.QQClient, event *client.DisconnectedEvent) {
+		logrus.Infof("连接已断开：%v", event.Message)
+	})
 	return nil
 }
 
